@@ -18,6 +18,14 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 admin.initializeApp(functions.config().firebase);
+
+const Storage = require("@google-cloud/storage");
+const vision = require("@google-cloud/vision");
+const exec = require("child-process-promise").exec;
+
+const visionClient = new vision.ImageAnnotatorClient();
+const storageClient = new Storage();
+
 // TODO(DEVELOPER): Write the addWelcomeMessages Function here.
 exports.addWelcomeMessages = functions.auth.user().onCreate(user => {
   console.log("A new user signed in for the first time");
