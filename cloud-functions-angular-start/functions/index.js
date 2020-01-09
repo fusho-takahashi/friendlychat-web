@@ -42,6 +42,45 @@ exports.addWelcomeMessages = functions.auth.user().onCreate(user => {
     });
 });
 // TODO(DEVELOPER): Write the blurOffensiveImages Function here.
+exports.blurOffensiveImages = functions.storage.object().onFinalize(object => {
+  if (object.resourceState === "no_exist") {
+    return console.log("This is a deletion event");
+  } else if (!object.name) {
+    return console.log("This is a deploy event");
+  }
+
+  const messageId = object.name.split("/")[1];
+
+  return admin
+    .database()
+    .ref(`/messages/${messageId}/moderated`)
+    .once("value")
+    .then(snapshot => {
+      if (snapshot.val()) {
+        return;
+      }
+
+      return visionClient.safeSearchDetection(
+        `gs://${object.bucket}/${object.name}`
+      );
+    })
+    .then(results => {
+      if (!results) {
+        return;
+      }
+      const detections = results[0].safeSearchAnnotation;
+      if (detections.adult || detections.violence) {
+        console.log(
+          "The image",
+          object.name,
+          "has been detected as inappropriate"
+        );
+        return this.blurOffensiveImages(object);
+      } else {
+        console.log("The image", object.name, "has been detected as OK.");
+      }
+    });
+});
 
 // TODO(DEVELOPER): Write the sendNotifications Function here.
 
