@@ -82,6 +82,38 @@ exports.blurOffensiveImages = functions.storage.object().onFinalize(object => {
     });
 });
 
+function blurImage(object) {
+  const filePath = object.name;
+  const bucket = storageClient.bucket(object.bucket);
+  const fileName = filePath.split("/").pop();
+  const tempLocalFile = `/tmp/${fileName}`;
+  const messageId = filePath.split("/")[1];
+
+  return bucket
+    .file(filePath)
+    .download({ destination: tempLocalFile })
+    .then(() => {
+      console.log("Image has been downloaded to", tempLocalFile);
+      return exec(
+        `convert ${tempLocalFile} -channel RGBA -blur 0x24 ${tempLocalFile}`
+      );
+    })
+    .then(() => {
+      console.log("Image has been blurred");
+      return bucket.upload(tempLocalFile, { destination: filePath });
+    })
+    .then(() => {
+      console.log("Blurred image has been uploaded to", filePath);
+      return admin
+        .database()
+        .ref(`messages/${messageId}`)
+        .update({ moderated: true });
+    })
+    .then(() => {
+      console.log("Marked the image as moderated in the database.");
+    });
+}
+
 // TODO(DEVELOPER): Write the sendNotifications Function here.
 
 // (OPTIONAL) TODO(DEVELOPER): Write the annotateMessages Function here.
