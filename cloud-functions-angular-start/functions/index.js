@@ -19,7 +19,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 admin.initializeApp(functions.config().firebase);
 
-const Storage = require("@google-cloud/storage");
+const { Storage } = require("@google-cloud/storage");
 const vision = require("@google-cloud/vision");
 const exec = require("child-process-promise").exec;
 
@@ -75,7 +75,7 @@ exports.blurOffensiveImages = functions.storage.object().onFinalize(object => {
           object.name,
           "has been detected as inappropriate"
         );
-        return this.blurOffensiveImages(object);
+        return blurImage(object);
       } else {
         console.log("The image", object.name, "has been detected as OK.");
       }
@@ -106,7 +106,7 @@ function blurImage(object) {
       console.log("Blurred image has been uploaded to", filePath);
       return admin
         .database()
-        .ref(`messages/${messageId}`)
+        .ref(`/messages/${messageId}`)
         .update({ moderated: true });
     })
     .then(() => {
